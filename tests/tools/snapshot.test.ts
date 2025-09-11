@@ -1,0 +1,99 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import {describe, it} from 'node:test';
+import assert from 'assert';
+
+import {html, withBrowser} from '../utils.js';
+import {takeSnapshot, waitFor} from '../../src/tools/snapshot.js';
+
+describe('snapshot', () => {
+  describe('browser_snapshot', () => {
+    it('includes a snapshot', async () => {
+      await withBrowser(async (response, context) => {
+        await takeSnapshot.handler({params: {}}, response, context);
+        assert.ok(response.includeSnapshot);
+      });
+    });
+  });
+  describe('browser_wait_for', () => {
+    it('should work', async () => {
+      await withBrowser(async (response, context) => {
+        const page = await context.getSelectedPage();
+
+        await page.setContent(
+          html`<main><span>Hello</span><span> </span><div>World</div></main>`,
+        );
+        await waitFor.handler(
+          {
+            params: {
+              text: 'Hello',
+            },
+          },
+          response,
+          context,
+        );
+
+        assert.equal(
+          response.responseLines[0],
+          'Element with text "Hello" found.',
+        );
+        assert.ok(response.includeSnapshot);
+      });
+    });
+    it('should work with element that show up later', async () => {
+      await withBrowser(async (response, context) => {
+        const page = await context.getSelectedPage();
+
+        const handlePromise = waitFor.handler(
+          {
+            params: {
+              text: 'Hello World',
+            },
+          },
+          response,
+          context,
+        );
+
+        await page.setContent(
+          html`<main><span>Hello</span><span> </span><div>World</div></main>`,
+        );
+
+        await handlePromise;
+
+        assert.equal(
+          response.responseLines[0],
+          'Element with text "Hello World" found.',
+        );
+        assert.ok(response.includeSnapshot);
+      });
+    });
+    it('should work with aria elements', async () => {
+      await withBrowser(async (response, context) => {
+        const page = await context.getSelectedPage();
+
+        await page.setContent(
+          html`<main><h1>Header</h1><div>Text</div></main>`,
+        );
+
+        await waitFor.handler(
+          {
+            params: {
+              text: 'Header',
+            },
+          },
+          response,
+          context,
+        );
+
+        assert.equal(
+          response.responseLines[0],
+          'Element with text "Header" found.',
+        );
+        assert.ok(response.includeSnapshot);
+      });
+    });
+  });
+});

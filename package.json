@@ -1,0 +1,60 @@
+{
+  "name": "chrome-devtools-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Chrome DevTools",
+  "type": "module",
+  "bin": {
+    "chrome-devtools-mcp": "./build/src/index.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc && node --experimental-strip-types scripts/post-build.ts",
+    "format": "eslint --cache --fix . ;prettier --write --cache .",
+    "check-format": "eslint --cache .; prettier --check --cache .;",
+    "generate-docs": "node --experimental-strip-types scripts/generate-docs.ts",
+    "start": "npm run build && node build/src/index.js",
+    "start-debug": "DEBUG=mcp:* DEBUG_COLORS=false npm run build && node build/src/index.js",
+    "test": "npm run build && npx puppeteer browsers install chrome@latest && PUPPETEER_CHROME_VERSION=latest node --test-force-exit --test 'build/tests/**/*.test.js'",
+    "test:only": "npm run build && npx puppeteer browsers install chrome@latest && PUPPETEER_CHROME_VERSION=latest node --test-force-exit --test --test-only 'build/tests/**/*.test.js'",
+    "test:only:no-build": "npx puppeteer browsers install chrome@latest && PUPPETEER_CHROME_VERSION=latest node --test-force-exit --test --test-only 'build/tests/**/*.test.js'",
+    "prepare": "node --experimental-strip-types scripts/prepare.ts"
+  },
+  "files": [
+    "build/src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChromeDevTools/chrome-devtools-mcp.git"
+  },
+  "author": "Google LLC",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp/issues"
+  },
+  "homepage": "https://github.com/ChromeDevTools/chrome-devtools-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "debug": "^4.4.1",
+    "puppeteer-core": "^24.20.0",
+    "yargs": "18.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/debug": "^4.1.12",
+    "@types/filesystem": "^0.0.36",
+    "@types/node": "^22.18.1",
+    "@types/sinon": "^17.0.4",
+    "@types/yargs": "^17.0.33",
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "chrome-devtools-frontend": "1.0.1513662",
+    "eslint": "^9.31.0",
+    "globals": "^16.3.0",
+    "gts": "^6.0.2",
+    "prettier": "^3.5.3",
+    "puppeteer": "^24.20.0",
+    "sinon": "^21.0.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0"
+  }
+}

@@ -1,0 +1,276 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import {
+  Browser,
+  ConsoleMessage,
+  Dialog,
+  ElementHandle,
+  HTTPRequest,
+  Page,
+  SerializedAXNode,
+} from 'puppeteer-core';
+import {Context} from './tools/ToolDefinition.js';
+import {Debugger} from 'debug';
+import {NetworkCollector, PageCollector} from './PageCollector.js';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {listPages} from './tools/pages.js';
+
+export interface TextSnapshotNode extends SerializedAXNode {
+  id: number;
+  children: TextSnapshotNode[];
+}
+
+export class McpContext implements Context {
+  browser: Browser;
+  logger: Debugger;
+
+  // The most recent page state.
+  #pages: Page[] = [];
+  #selectedPageIdx = 0;
+  // The most recent snapshot.
+  #textSnapshot: TextSnapshotNode | null = null;
+  #idToNodeMap = new Map<number, TextSnapshotNode>();
+  #networkCollector: NetworkCollector;
+  #consoleCollector: PageCollector<ConsoleMessage | Error>;
+
+  #isRunningTrace = false;
+  #networkConditions: string | null = null;
+  #cpuThrottlingRate = 1;
+  #dialog?: Dialog;
+
+  private constructor(browser: Browser, logger: Debugger) {
+    this.browser = browser;
+    this.logger = logger;
+
+    this.#networkCollector = new NetworkCollector(
+      this.browser,
+      (page, collect) => {
+        page.on('request', request => {
+          collect(request);
+        });
+      },
+    );
+
+    this.#consoleCollector = new PageCollector(
+      this.browser,
+      (page, collect) => {
+        page.on('console', (event: ConsoleMessage) => {
+          collect(event);
+        });
+        page.on('pageerror', (event: Error) => {
+          collect(event);
+        });
+      },
+    );
+  }
+
+  async #init() {
+    await this.createPagesSnapshot();
+    this.setSelectedPageIdx(0);
+    await this.#networkCollector.init();
+    await this.#consoleCollector.init();
+  }
+
+  static async from(browser: Browser, logger: Debugger) {
+    const context = new McpContext(browser, logger);
+    await context.#init();
+    return context;
+  }
+
+  getNetworkRequests(): HTTPRequest[] {
+    const page = this.getSelectedPage();
+    return this.#networkCollector.getData(page);
+  }
+
+  getConsoleData(): (ConsoleMessage | Error)[] {
+    const page = this.getSelectedPage();
+    return this.#consoleCollector.getData(page);
+  }
+
+  async newPage(): Promise<Page> {
+    const page = await this.browser.newPage();
+    const pages = await this.createPagesSnapshot();
+    this.setSelectedPageIdx(pages.indexOf(page));
+    this.#networkCollector.addPage(page);
+    this.#consoleCollector.addPage(page);
+    return page;
+  }
+
+  getNetworkRequestByUrl(url: string): HTTPRequest {
+    const requests = this.getNetworkRequests();
+    if (!requests.length) {
+      throw new Error('No requests found for selected page');
+    }
+
+    for (const request of requests) {
+      if (request.url() === url) {
+        return request;
+      }
+    }
+
+    throw new Error('Request not found for selected page');
+  }
+
+  setNetworkConditions(conditions: string | null): void {
+    this.#networkConditions = conditions;
+  }
+
+  getNetworkConditions(): string | null {
+    return this.#networkConditions;
+  }
+
+  setCpuThrottlingRate(rate: number): void {
+    this.#cpuThrottlingRate = rate;
+  }
+
+  getCpuThrottlingRate(): number {
+    return this.#cpuThrottlingRate;
+  }
+
+  setIsRunningPerformanceTrace(x: boolean): void {
+    this.#isRunningTrace = x;
+  }
+
+  isRunningPerformanceTrace(): boolean {
+    return this.#isRunningTrace;
+  }
+
+  getDialog(): Dialog | undefined {
+    return this.#dialog;
+  }
+
+  clearDialog(): void {
+    this.#dialog = undefined;
+  }
+
+  getSelectedPage(): Page {
+    const page = this.#pages[this.#selectedPageIdx];
+    if (!page) {
+      throw new Error('No page selected');
+    }
+    if (page.isClosed()) {
+      throw new Error(
+        `The selected page has been closed. Call ${listPages.name} to see open pages.`,
+      );
+    }
+    return page;
+  }
+
+  getPageByIdx(idx: number): Page {
+    const pages = this.#pages;
+    const page = pages[idx];
+    if (!page) {
+      throw new Error('No page found');
+    }
+    return page;
+  }
+
+  getSelectedPageIdx(): number {
+    return this.#selectedPageIdx;
+  }
+
+  #dialogHandler = (dialog: Dialog): void => {
+    this.#dialog = dialog;
+  };
+
+  setSelectedPageIdx(idx: number): void {
+    const oldPage = this.getSelectedPage();
+    oldPage.off('dialog', this.#dialogHandler);
+    this.#selectedPageIdx = idx;
+    const newPage = this.getSelectedPage();
+    newPage.on('dialog', this.#dialogHandler);
+
+    // For waiters 5sec timeout should be sufficient.
+    newPage.setDefaultTimeout(5_000);
+    // 10sec should be enough for the load event to be emitted during
+    // navigations.
+    newPage.setDefaultNavigationTimeout(10_000);
+  }
+
+  async getElementByUid(uid: number): Promise<ElementHandle<Element>> {
+    if (!this.#idToNodeMap.size) {
+      throw new Error('No snapshot found. Use browser_snapshot to capture one');
+    }
+    const node = this.#idToNodeMap.get(uid);
+    if (!node) {
+      throw new Error('No such element found in the snapshot');
+    }
+    const handle = await node.elementHandle();
+    if (!handle) {
+      throw new Error('No such element found in the snapshot');
+    }
+    return handle;
+  }
+
+  /**
+   * Creates a snapshot of the pages.
+   */
+  async createPagesSnapshot(): Promise<Page[]> {
+    this.#pages = await this.browser.pages();
+    return this.#pages;
+  }
+
+  getPages(): Page[] {
+    return this.#pages;
+  }
+
+  /**
+   * Creates a text snapshot of a page.
+   */
+  async createTextSnapshot(): Promise<TextSnapshotNode | null> {
+    const page = this.getSelectedPage();
+    const rootNode = await page.accessibility.snapshot();
+    if (!rootNode) {
+      return null;
+    }
+
+    // Iterate through the whole accessibility node tree and assign node ids that
+    // will be used for the tree serialization and mapping ids back to nodes.
+    let idCounter = 0;
+    this.#idToNodeMap.clear();
+    const assignIds = (node: SerializedAXNode): TextSnapshotNode => {
+      const nodeWithId: TextSnapshotNode = {
+        ...node,
+        id: idCounter++,
+        children: node.children
+          ? node.children.map(child => assignIds(child))
+          : [],
+      };
+      this.#idToNodeMap.set(nodeWithId.id, nodeWithId);
+      return nodeWithId;
+    };
+
+    const rootNodeWithId = assignIds(rootNode);
+    this.#textSnapshot = rootNodeWithId;
+    return rootNodeWithId;
+  }
+
+  getTextSnapshot(): TextSnapshotNode | null {
+    return this.#textSnapshot;
+  }
+
+  async saveTemporaryFile(
+    data: Uint8Array<ArrayBufferLike>,
+    mimeType: 'image/png' | 'image/jpeg',
+  ): Promise<{filename: string}> {
+    try {
+      const dir = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'chrome-devtools-mcp-'),
+      );
+      const filename = path.join(
+        dir,
+        mimeType == 'image/png' ? `screenshot.png` : 'screenshot.jpg',
+      );
+      await fs.writeFile(path.join(dir, `screenshot.png`), data);
+      return {filename};
+    } catch (err) {
+      this.logger(err);
+      throw new Error('Could not save a screenshot to a file');
+    }
+  }
+}

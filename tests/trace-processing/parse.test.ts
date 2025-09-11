@@ -1,0 +1,40 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import {describe, it} from 'node:test';
+import assert from 'assert';
+import {
+  insightOutput,
+  parseRawTraceBuffer,
+} from '../../src/trace-processing/parse.js';
+import {loadTraceAsBuffer} from './fixtures/load.js';
+
+describe('Trace parsing', async () => {
+  it('can parse a Uint8Array from Tracing.stop())', async () => {
+    const rawData = loadTraceAsBuffer('basic-trace.json.gz');
+    const result = await parseRawTraceBuffer(rawData);
+    assert.ok(result?.parsedTrace);
+    assert.ok(result?.insights);
+  });
+
+  it('can format results of a trace', async () => {
+    const rawData = loadTraceAsBuffer('web-dev-with-commit.json.gz');
+    const result = await parseRawTraceBuffer(rawData);
+    assert.ok(result?.parsedTrace);
+    assert.ok(result?.insights);
+
+    const output = insightOutput(result);
+    assert.strictEqual(
+      output.includes(
+        'The Largest Contentful Paint (LCP) time for this navigation was 129.2 ms.',
+      ),
+      true,
+    );
+    assert.strictEqual(
+      output.includes('- fetchpriority=high should be applied: FAILED'),
+      true,
+    );
+  });
+});

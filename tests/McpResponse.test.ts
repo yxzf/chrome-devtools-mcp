@@ -1,0 +1,248 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import {describe, it} from 'node:test';
+import assert from 'assert';
+
+import {getMockRequest, html, withBrowser} from './utils.js';
+
+describe('McpResponse', () => {
+  it('list pages', async () => {
+    await withBrowser(async (response, context) => {
+      response.setIncludePages(true);
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.deepStrictEqual(
+        result[0].text,
+        `# test response
+## Pages
+0: about:blank [selected]`,
+      );
+    });
+  });
+
+  it('allows response text lines to be added', async () => {
+    await withBrowser(async (response, context) => {
+      response.appendResponseLine('Testing 1');
+      response.appendResponseLine('Testing 2');
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.deepStrictEqual(
+        result[0].text,
+        `# test response
+Testing 1
+Testing 2`,
+      );
+    });
+  });
+
+  it('does not include anything in response if snapshot is null', async () => {
+    await withBrowser(async (response, context) => {
+      const page = context.getSelectedPage();
+      page.accessibility.snapshot = async () => null;
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.deepStrictEqual(result[0].text, `# test response`);
+    });
+  });
+
+  it('returns correctly formatted snapshot for a simple tree', async () => {
+    await withBrowser(async (response, context) => {
+      const page = context.getSelectedPage();
+      await page.setContent(`<!DOCTYPE html>
+<button>Click me</button><input type="text" value="Input">`);
+      await page.focus('button');
+      response.setIncludeSnapshot(true);
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## Page content
+uid=0 RootWebArea ""
+  uid=1 button "Click me" focusable focused
+  uid=2 textbox "" value="Input"
+`,
+      );
+    });
+  });
+
+  it('returns values for textboxes', async () => {
+    await withBrowser(async (response, context) => {
+      const page = context.getSelectedPage();
+      await page.setContent(
+        html`<label
+          >username<input
+            name="username"
+            value="mcp"
+        /></label>`,
+      );
+      await page.focus('input');
+      response.setIncludeSnapshot(true);
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## Page content
+uid=0 RootWebArea "My test page"
+  uid=1 StaticText "username"
+  uid=2 textbox "username" value="mcp" focusable focused
+`,
+      );
+    });
+  });
+
+  it('adds throttling setting when it is not null', async () => {
+    await withBrowser(async (response, context) => {
+      context.setNetworkConditions('Slow 3G');
+      const result = await response.handle('test', context);
+      assert.equal(result[0].type, 'text');
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## Network emulation
+Emulating: Slow 3G`,
+      );
+    });
+  });
+
+  it('does not include throttling setting when it is null', async () => {
+    await withBrowser(async (response, context) => {
+      const result = await response.handle('test', context);
+      context.setNetworkConditions(null);
+      assert.equal(result[0].type, 'text');
+      assert.strictEqual(result[0].text, `# test response`);
+    });
+  });
+  it('adds image when image is attached', async () => {
+    await withBrowser(async (response, context) => {
+      response.attachImage({data: 'imageBase64', mimeType: 'image/png'});
+      const result = await response.handle('test', context);
+      assert.strictEqual(result[0].text, `# test response`);
+      assert.equal(result[1].type, 'image');
+      assert.strictEqual(result[1].data, 'imageBase64');
+      assert.strictEqual(result[1].mimeType, 'image/png');
+    });
+  });
+
+  it('adds cpu throttling setting when it is over 1', async () => {
+    await withBrowser(async (response, context) => {
+      context.setCpuThrottlingRate(4);
+      const result = await response.handle('test', context);
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## CPU emulation
+Emulating: 4x slowdown`,
+      );
+    });
+  });
+
+  it('does not include cpu throttling setting when it is 1', async () => {
+    await withBrowser(async (response, context) => {
+      context.setCpuThrottlingRate(1);
+      const result = await response.handle('test', context);
+      assert.strictEqual(result[0].text, `# test response`);
+    });
+  });
+
+  it('adds a dialog', async () => {
+    await withBrowser(async (response, context) => {
+      const page = context.getSelectedPage();
+      const dialogPromise = new Promise<void>(resolve => {
+        page.on('dialog', () => {
+          resolve();
+        });
+      });
+      page.evaluate(() => {
+        alert('test');
+      });
+      await dialogPromise;
+      const result = await response.handle('test', context);
+      context.getDialog()?.dismiss();
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+# Open dialog
+alert: test (default value: test).
+Call browser_handle_dialog to handle it before continuing.`,
+      );
+    });
+  });
+
+  it('add network requests when setting is true', async () => {
+    await withBrowser(async (response, context) => {
+      response.setIncludeNetworkRequests(true);
+      context.getNetworkRequests = () => {
+        return [getMockRequest()];
+      };
+      const result = await response.handle('test', context);
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## Network requests
+http://example.com GET [pending]`,
+      );
+    });
+  });
+  it('does not include network requests when setting is false', async () => {
+    await withBrowser(async (response, context) => {
+      response.setIncludeNetworkRequests(false);
+      context.getNetworkRequests = () => {
+        return [getMockRequest()];
+      };
+      const result = await response.handle('test', context);
+      assert.strictEqual(result[0].text, `# test response`);
+    });
+  });
+
+  it('add network request when attached', async () => {
+    await withBrowser(async (response, context) => {
+      response.setIncludeNetworkRequests(true);
+      const request = getMockRequest();
+      context.getNetworkRequests = () => {
+        return [request];
+      };
+      response.attachNetworkRequest(request.url());
+      const result = await response.handle('test', context);
+      assert.strictEqual(
+        result[0].text,
+        `# test response
+## Request http://example.com
+Status:  [pending]
+### Request Headers
+- content-size:10
+## Network requests
+http://example.com GET [pending]`,
+      );
+    });
+  });
+
+  it('adds console messages when the setting is true', async () => {
+    await withBrowser(async (response, context) => {
+      response.setIncludeConsoleData(true);
+      const page = context.getSelectedPage();
+      const consoleMessagePromise = new Promise<void>(resolve => {
+        page.on('console', () => {
+          resolve();
+        });
+      });
+      page.evaluate(() => {
+        console.log('Hello from the test');
+      });
+      await consoleMessagePromise;
+      const result = await response.handle('test', context);
+      assert.ok(result[0].text);
+      // Cannot check the full text because it contains local file path
+      assert.ok(
+        result[0].text.toString().startsWith(`# test response
+## Console messages
+Log>`),
+      );
+      assert.ok(result[0].text.toString().includes('Hello from the test'));
+    });
+  });
+});
