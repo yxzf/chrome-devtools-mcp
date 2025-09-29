@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>浏览器自动化MCP工具对比指南</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #024943 0%, #EAF0E2 50%, #F9D36E 100%);
+            min-height: 100vh;
+            color: #024943;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #EAF0E2;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            background: linear-gradient(135deg, #024943 0%, #1a5d56 100%);
+            color: #EAF0E2;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 4px solid #F9D36E;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 1;
+            font-weight: 300;
+            color: #F9D36E;
+        }
+
+        .nav-container {
+            background: #024943;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0;
+            border-bottom: 2px solid #F9D36E;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: #EAF0E2;
+            border: none;
+            padding: 20px 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(234, 240, 226, 0.1);
+            border-bottom-color: #F9D36E;
+        }
+
+        .nav-btn.active {
+            background: #F9D36E;
+            color: #024943;
+            border-bottom-color: #024943;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #024943;
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #F9D36E;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h3 {
+            color: #024943;
+            font-size: 1.8rem;
+            margin: 30px 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h4 {
+            color: #024943;
+            font-size: 1.4rem;
+            margin: 20px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #024943;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-auto-rows: 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        /* 角色选择卡片样式 */
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-auto-rows: 1fr;
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #EAF0E2 0%, #f0f8eb 100%);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(2, 73, 67, 0.1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(2, 73, 67, 0.2);
+        }
+
+        .role-header {
+            background: linear-gradient(135deg, #024943 0%, #036358 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-height: 80px;
+        }
+
+        .role-icon {
+            font-size: 2rem;
+            min-width: 40px;
+        }
+
+        .role-header h4 {
+            margin: 0;
+            font-size: 1.3rem;
+            flex-grow: 1;
+            color: white;
+        }
+
+        .role-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .role-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .role-info {
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+
+        .role-info p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .security-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+
+        .security-note i {
+            color: #ff9800;
+        }
+
+        .install-cmd {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #024943;
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #EAF0E2 0%, #f0f8eb 100%);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(2, 73, 67, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(2, 73, 67, 0.2);
+            border-color: #F9D36E;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            min-width: 60px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 5px;
+        }
+
+        .chrome-icon {
+            color: #024943;
+        }
+
+        .ai-icon {
+            color: #F9D36E;
+        }
+
+        .playwright-icon {
+            color: #024943;
+        }
+
+        .card-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-content h4 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: #EAF0E2;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(2, 73, 67, 0.1);
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #024943, #013832);
+            color: #EAF0E2;
+            padding: 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .comparison-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #024943;
+            font-size: 1.05rem;
+            color: #024943;
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(249, 211, 110, 0.2);
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 20px 0;
+            flex-grow: 1;
+        }
+
+        .feature-list li {
+            padding: 12px 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .feature-icon {
+            color: #024943;
+            min-width: 20px;
+        }
+
+        .check {
+            color: #28a745;
+        }
+
+        .code-block {
+            background: #024943;
+            color: #EAF0E2;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid #F9D36E;
+            white-space: pre;
+            line-height: 1.5;
+        }
+
+        .install-section {
+            background: linear-gradient(135deg, #f0f8eb 0%, #EAF0E2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border-left: 5px solid #F9D36E;
+        }
+
+        .decision-matrix {
+            margin: 30px 0;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #fcf8e3 100%);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .warning-icon {
+            color: #856404;
+            font-size: 1.5rem;
+            min-width: 25px;
+        }
+
+        .warning-content {
+            flex-grow: 1;
+        }
+
+        .warning-content h4 {
+            color: #856404;
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+        }
+
+        .warning-content p {
+            color: #856404;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .role-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .card-container,
+            .role-cards {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo"><i class="fas fa-globe"></i></div>
+            <h1>浏览器自动化MCP工具对比指南</h1>
+            <p class="subtitle">Chrome DevTools MCP vs mcp-chrome vs Playwright MCP</p>
+        </header>
+
+        <nav class="nav-container">
+            <button class="nav-btn active" onclick="showPage('intro')">
+                <i class="fab fa-chrome"></i> 产品介绍
+            </button>
+            <button class="nav-btn" onclick="showPage('deep-dive')">
+                <i class="fas fa-microscope"></i> 深度解析
+            </button>
+            <button class="nav-btn" onclick="showPage('comparison')">
+                <i class="fas fa-balance-scale"></i> 三工具全面对比
+            </button>
+            <button class="nav-btn" onclick="showPage('guide')">
+                <i class="fas fa-lightbulb"></i> 选择建议
+            </button>
+        </nav>
+
+        <div class="content">
+            <!-- Chrome DevTools MCP 产品介绍 -->
+            <div id="intro" class="page active">
+                <h2><i class="fab fa-chrome"></i> Chrome DevTools MCP 介绍</h2>
+
+                <p><strong>Chrome DevTools MCP</strong> 是由Google Chrome DevTools团队开发的专业浏览器自动化和调试工具，让AI编程助手能够控制和检查Chrome浏览器。</p>
+
+                <h3><i class="fas fa-star"></i> 核心特性</h3>
+                <div class="card-container">
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-chart-line"></i></div>
+                        <div class="card-content">
+                            <h4>性能分析专家</h4>
+                            <p>使用Chrome DevTools录制性能轨迹，提取可操作的性能洞察，包括Core Web Vitals分析</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check check feature-icon"></i>LCP、CLS、FID等关键指标监控</li>
+                                <li><i class="fas fa-check check feature-icon"></i>网络时序瀑布图分析</li>
+                                <li><i class="fas fa-check check feature-icon"></i>JavaScript执行性能剖析</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-bug"></i></div>
+                        <div class="card-content">
+                            <h4>高级浏览器调试</h4>
+                            <p>分析网络请求、截图、检查浏览器控制台，提供专业级调试能力</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check check feature-icon"></i>网络请求详细分析和过滤</li>
+                                <li><i class="fas fa-check check feature-icon"></i>控制台消息捕获和检查</li>
+                                <li><i class="fas fa-check check feature-icon"></i>页面截图和accessibility快照</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-robot"></i></div>
+                        <div class="card-content">
+                            <h4>可靠自动化</h4>
+                            <p>基于Puppeteer实现Chrome自动化，自动等待操作结果，确保稳定性</p>
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check check feature-icon"></i>智能等待机制，无需手动延迟</li>
+                                <li><i class="fas fa-check check feature-icon"></i>异常处理和重试机制</li>
+                                <li><i class="fas fa-check check feature-icon"></i>26个专业自动化工具</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <h3><i class="fas fa-tools"></i> 完整工具生态</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>工具类别</th>
+                            <th>数量</th>
+                            <th>主要功能</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>输入自动化</strong></td>
+                            <td>7个</td>
+                            <td>点击、拖拽、填表、文件上传、弹窗处理等</td>
+                        </tr>
+                        <tr>
+                            <td><strong>导航自动化</strong></td>
+                            <td>7个</td>
+                            <td>页面管理、导航控制、等待机制等</td>
+                        </tr>
+                        <tr>
+                            <td><strong>性能分析</strong></td>
+                            <td>3个</td>
+                            <td>性能追踪、停止追踪、深度性能洞察</td>
+                        </tr>
+                        <tr>
+                            <td><strong>网络调试</strong></td>
+                            <td>2个</td>
+                            <td>网络请求获取、请求列表(支持资源类型过滤)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>模拟测试</strong></td>
+                            <td>3个</td>
+                            <td>CPU节流(1-20倍)、网络条件模拟、页面尺寸调整</td>
+                        </tr>
+                        <tr>
+                            <td><strong>调试工具</strong></td>
+                            <td>4个</td>
+                            <td>JavaScript执行、控制台消息、截图、accessibility快照</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3><i class="fas fa-download"></i> 快速安装</h3>
+                <div class="install-section">
+                    <h4>Claude Code CLI安装</h4>
+                    <div class="code-block">claude mcp add chrome-devtools npx chrome-devtools-mcp@latest</div>
+
+                    <h4>手动配置</h4>
+                    <div class="code-block">{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    }
+  }
+}</div>
+
+                    <h4>首次使用</h4>
+                    <div class="code-block">检查 https://developers.chrome.com 的性能</div>
+                </div>
+
+                <h3><i class="fas fa-medal"></i> 技术优势</h3>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check check feature-icon"></i><strong>Google官方维护</strong>: 长期稳定的技术支持和更新</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>企业级稳定性</strong>: 适合生产环境使用，具备完善的错误处理</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>Chrome生态集成</strong>: 与Chrome DevTools API深度集成，功能最完整</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>专业性能分析</strong>: 业界领先的网页性能分析能力</li>
+                </ul>
+            </div>
+
+            <!-- 深度解析 -->
+            <div id="deep-dive" class="page">
+                <h2><i class="fas fa-microscope"></i> Chrome DevTools MCP 深度解析</h2>
+
+                <h3><i class="fas fa-cog"></i> 高级配置</h3>
+                <div class="install-section">
+                    <h4>完整配置选项</h4>
+                    <div class="code-block">{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--channel=stable",         // Chrome通道: stable/canary/beta/dev
+        "--headless=false",         // 是否无头模式
+        "--isolated=false",         // 是否隔离模式
+        "--executablePath=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "--browserUrl=http://localhost:9222",  // 连接远程Chrome
+        "--logFile=./chrome-devtools-debug.log"  // 调试日志文件
+      ]
+    }
+  }
+}</div>
+
+                    <h4>参数详细说明</h4>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>参数</th>
+                                <th>说明</th>
+                                <th>类型/可选值</th>
+                                <th>默认值</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>--browserUrl</code>, <code>-u</code></td>
+                                <td>连接到运行中的Chrome实例（使用端口转发）</td>
+                                <td>string</td>
+                                <td>启动新实例</td>
+                            </tr>
+                            <tr>
+                                <td><code>--headless</code></td>
+                                <td>是否以无头模式运行（无UI界面）</td>
+                                <td>boolean</td>
+                                <td>false</td>
+                            </tr>
+                            <tr>
+                                <td><code>--executablePath</code>, <code>-e</code></td>
+                                <td>自定义Chrome可执行文件路径</td>
+                                <td>string</td>
+                                <td>系统默认路径</td>
+                            </tr>
+                            <tr>
+                                <td><code>--isolated</code></td>
+                                <td>创建临时用户数据目录，浏览器关闭后自动清理</td>
+                                <td>boolean</td>
+                                <td>false</td>
+                            </tr>
+                            <tr>
+                                <td><code>--channel</code></td>
+                                <td>指定要使用的Chrome通道版本</td>
+                                <td>stable, canary, beta, dev</td>
+                                <td>stable</td>
+                            </tr>
+                            <tr>
+                                <td><code>--logFile</code></td>
+                                <td>调试日志文件路径，设置DEBUG=*启用详细日志</td>
+                                <td>string</td>
+                                <td>不输出日志</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3><i class="fas fa-folder"></i> 用户数据目录</h3>
+                <p>Chrome DevTools MCP使用持久化用户数据目录保持登录状态：</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-linux feature-icon"></i><strong>Linux/MacOS</strong>: <code>$HOME/.cache/chrome-devtools-mcp/chrome-profile-$CHANNEL</code></li>
+                    <li><i class="fab fa-windows feature-icon"></i><strong>Windows</strong>: <code>%HOMEPATH%/.cache/chrome-devtools-mcp/chrome-profile-$CHANNEL</code></li>
+                </ul>
+
+                <div class="card-container">
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="card-content">
+                            <h4>会话保持</h4>
+                            <p>Cookie、LocalStorage、Session在重启后保持</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-share-alt"></i></div>
+                        <div class="card-content">
+                            <h4>多实例共享</h4>
+                            <p>所有chrome-devtools-mcp实例共享同一数据目录</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div class="card-content">
+                            <h4>隔离模式</h4>
+                            <p>使用 <code>--isolated=true</code> 可创建临时目录，关闭后自动清理</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3><i class="fas fa-rocket"></i> 技术优势</h3>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check check feature-icon"></i><strong>Google官方维护</strong>: 长期稳定的技术支持</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>专业性能分析</strong>: Core Web Vitals、网络时序等深度分析</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>Chrome生态集成</strong>: 与Chrome DevTools API深度集成</li>
+                    <li><i class="fas fa-check check feature-icon"></i><strong>企业级稳定性</strong>: 适合生产环境使用</li>
+                </ul>
+
+                <h3><i class="fas fa-terminal"></i> 实战示例</h3>
+                <div class="card-container">
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-chart-line"></i></div>
+                        <div class="card-content">
+                            <h4>性能分析</h4>
+                            <div class="code-block">检查 https://developers.chrome.com 的性能</div>
+                            <p>AI助手将自动启动Chrome，录制性能轨迹，分析Core Web Vitals指标</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon chrome-icon"><i class="fas fa-bug"></i></div>
+                        <div class="card-content">
+                            <h4>调试分析</h4>
+                            <div class="code-block">分析这个页面的网络请求和控制台错误</div>
+                            <p>智能检测网络问题、JavaScript错误，提供详细分析报告</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 三工具全面对比 -->
+            <div id="comparison" class="page">
+                <h2><i class="fas fa-balance-scale"></i> 三工具全面对比</h2>
+
+                <h3><i class="fas fa-info-circle"></i> 基本信息对比</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>基本信息</th>
+                            <th>Chrome DevTools MCP</th>
+                            <th>mcp-chrome</th>
+                            <th>Playwright MCP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>开发方</strong></td>
+                            <td>Google Chrome团队</td>
+                            <td>社区开发者</td>
+                            <td>Microsoft官方</td>
+                        </tr>
+                        <tr>
+                            <td><strong>最新版本</strong></td>
+                            <td>v0.4.0</td>
+                            <td>v0.0.6</td>
+                            <td>v0.0.40</td>
+                        </tr>
+                        <tr>
+                            <td><strong>浏览器支持</strong></td>
+                            <td>Chrome</td>
+                            <td>Chrome</td>
+                            <td>Chrome/Firefox/Safari/Edge</td>
+                        </tr>
+                        <tr>
+                            <td><strong>定位</strong></td>
+                            <td>专业Chrome调试和性能分析</td>
+                            <td>AI智能浏览器助手</td>
+                            <td>企业级跨浏览器测试</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3><i class="fas fa-shield-alt"></i> 登录状态保持机制</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>维度</th>
+                            <th>Chrome DevTools MCP</th>
+                            <th>mcp-chrome</th>
+                            <th>Playwright MCP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>默认行为</strong></td>
+                            <td>持久化用户数据目录</td>
+                            <td>直接使用现有浏览器</td>
+                            <td>持久化配置文件</td>
+                        </tr>
+                        <tr>
+                            <td><strong>登录便利性</strong></td>
+                            <td>🟡 首次需登录</td>
+                            <td>🟢 零配置即用</td>
+                            <td>🟡 首次需登录</td>
+                        </tr>
+                        <tr>
+                            <td><strong>状态同步</strong></td>
+                            <td>🟡 独立会话</td>
+                            <td>🟢 实时同步</td>
+                            <td>🟡 独立会话</td>
+                        </tr>
+                        <tr>
+                            <td><strong>环境保持</strong></td>
+                            <td>🟡 基本环境</td>
+                            <td>🟢 完整环境</td>
+                            <td>🟢 完整环境(扩展模式)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>安全隔离</strong></td>
+                            <td>🟢 良好隔离</td>
+                            <td>🚨 <span style="color: #e74c3c; font-weight: bold;">共享环境风险</span></td>
+                            <td>🟢 多模式选择，安全可控</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3><i class="fas fa-tools"></i> 核心功能对比</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>功能类别</th>
+                            <th>Chrome DevTools MCP</th>
+                            <th>mcp-chrome</th>
+                            <th>Playwright MCP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>页面自动化</strong></td>
+                            <td>✅ 完整支持</td>
+                            <td>✅ 智能交互</td>
+                            <td>✅ 全功能交互</td>
+                        </tr>
+                        <tr>
+                            <td><strong>性能分析</strong></td>
+                            <td>🟢 专业级 Core Web Vitals</td>
+                            <td>❌ 不支持</td>
+                            <td>✅ 基础跟踪</td>
+                        </tr>
+                        <tr>
+                            <td><strong>网络调试</strong></td>
+                            <td>🟢 完整时序分析</td>
+                            <td>✅ API抓取</td>
+                            <td>✅ 基础监控</td>
+                        </tr>
+                        <tr>
+                            <td><strong>跨浏览器</strong></td>
+                            <td>❌ 仅Chrome</td>
+                            <td>❌ 仅Chrome</td>
+                            <td>🟢 所有主流浏览器</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AI功能</strong></td>
+                            <td>❌ 无</td>
+                            <td>🟢 语义搜索+内容理解</td>
+                            <td>❌ 无</td>
+                        </tr>
+                        <tr>
+                            <td><strong>企业适用</strong></td>
+                            <td>✅ 适合</td>
+                            <td>⚠️ 安全风险需评估</td>
+                            <td>✅ 非常适合</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 使用场景与选择建议 -->
+            <div id="guide" class="page">
+                <h2><i class="fas fa-lightbulb"></i> 使用场景与选择建议</h2>
+
+                <p>根据你的需求和身份，以下是三大工具的选择指南：</p>
+
+                <div class="decision-matrix">
+                    <h3><i class="fas fa-crosshairs"></i> 按需求选择</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>你的主要需求</th>
+                                <th>推荐工具</th>
+                                <th>理由</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Web性能深度分析</strong></td>
+                                <td>Chrome DevTools MCP</td>
+                                <td>Google官方，专业Core Web Vitals分析</td>
+                            </tr>
+                            <tr>
+                                <td><strong>AI智能浏览助手</strong></td>
+                                <td>mcp-chrome</td>
+                                <td>语义搜索，零配置登录，AI内容理解</td>
+                            </tr>
+                            <tr>
+                                <td><strong>企业级测试自动化</strong></td>
+                                <td>Playwright MCP</td>
+                                <td>跨浏览器，移动端支持，CI/CD集成</td>
+                            </tr>
+                            <tr>
+                                <td><strong>新手入门学习</strong></td>
+                                <td>Chrome DevTools MCP</td>
+                                <td>简单配置，官方文档完善</td>
+                            </tr>
+                            <tr>
+                                <td><strong>长期稳定项目</strong></td>
+                                <td>Chrome DevTools MCP<br/>Playwright MCP</td>
+                                <td>Google/Microsoft官方维护保障</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3><i class="fas fa-users"></i> 按用户角色选择</h3>
+
+                <div class="role-cards">
+                    <div class="role-card chrome-card">
+                        <div class="role-header">
+                            <i class="fas fa-microscope role-icon"></i>
+                            <h4>Chrome DevTools MCP</h4>
+                            <span class="role-badge">专业性能分析</span>
+                        </div>
+                        <div class="role-content">
+                            <div class="role-info">
+                                <p><strong>适合:</strong> Web性能工程师、前端开发者、QA测试工程师</p>
+                                <p><strong>场景:</strong> 性能优化、Chrome调试、前端监控</p>
+                                <p><strong>优势:</strong> Google官方、专业性能分析、企业级稳定性</p>
+                            </div>
+                            <div class="install-cmd">claude mcp add chrome-devtools npx chrome-devtools-mcp@latest</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card ai-card">
+                        <div class="role-header">
+                            <i class="fas fa-robot role-icon"></i>
+                            <h4>mcp-chrome</h4>
+                            <span class="role-badge">AI智能增强</span>
+                        </div>
+                        <div class="role-content">
+                            <div class="role-info">
+                                <p><strong>适合:</strong> AI应用开发者、内容创作者、研究人员</p>
+                                <p><strong>场景:</strong> AI内容创作、智能浏览助手、语义搜索</p>
+                                <p><strong>优势:</strong> 零配置登录、AI功能丰富、完整环境保持</p>
+                            </div>
+                            <div class="security-note">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>安全提醒: 与个人浏览环境共享，敏感信息可能被AI访问</span>
+                            </div>
+                            <div class="install-cmd">npm install -g mcp-chrome-bridge</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card playwright-card">
+                        <div class="role-header">
+                            <i class="fas fa-globe role-icon"></i>
+                            <h4>Playwright MCP</h4>
+                            <span class="role-badge">企业级测试</span>
+                        </div>
+                        <div class="role-content">
+                            <div class="role-info">
+                                <p><strong>适合:</strong> 企业开发团队、DevOps工程师、全栈开发者</p>
+                                <p><strong>场景:</strong> 跨浏览器测试、移动端测试、CI/CD集成</p>
+                                <p><strong>优势:</strong> 跨浏览器支持、企业级功能、Microsoft官方</p>
+                            </div>
+                            <div class="install-cmd">npx @playwright/mcp@latest</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3><i class="fas fa-lightbulb"></i> 决策建议</h3>
+                <div class="decision-matrix">
+                    <h4>选择原则：</h4>
+                    <ol style="font-size: 1.1rem; margin: 20px 0; padding-left: 20px; color: #024943;">
+                        <li><strong>专业性要求高</strong> → Chrome DevTools MCP（性能分析专家工具）</li>
+                        <li><strong>创新AI应用</strong> → mcp-chrome（独特AI功能，适合探索）</li>
+                        <li><strong>企业级项目</strong> → Playwright MCP（完整企业功能，长期支持）</li>
+                    </ol>
+
+                    <p><strong>综合考虑因素</strong>：项目规模、团队技术栈、维护成本、安全要求、长期规划</p>
+                </div>
+
+                <h3><i class="fas fa-link"></i> 相关资源</h3>
+                <ul class="feature-list">
+                    <li><i class="fab fa-chrome feature-icon"></i><a href="https://github.com/ChromeDevTools/chrome-devtools-mcp" style="color: #024943; text-decoration: none;">Chrome DevTools MCP</a> - Google官方</li>
+                    <li><i class="fas fa-robot feature-icon"></i><a href="https://github.com/hangwin/mcp-chrome" style="color: #024943; text-decoration: none;">mcp-chrome</a> - 社区AI增强</li>
+                    <li><i class="fas fa-globe feature-icon"></i><a href="https://github.com/microsoft/playwright-mcp" style="color: #024943; text-decoration: none;">Playwright MCP</a> - Microsoft官方</li>
+                    <li><i class="fas fa-info feature-icon"></i><a href="https://modelcontextprotocol.io/" style="color: #024943; text-decoration: none;">Model Context Protocol</a> - 协议规范</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+
+            // Add active class to clicked nav button
+            event.target.closest('.nav-btn').classList.add('active');
+        }
+    </script>
+</body>
+</html>
